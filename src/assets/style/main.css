@@ -1,0 +1,25 @@
+/* 全局样式文件 */
+:root.light {
+    --bg-color: #E9E9E9;
+    --text-title-color: #222222;
+    --text-color: #525252;
+    --card-bg: #ffffff;
+    --card-border: #19232d1a;
+    /* 其他浅色主题变量 */
+}
+
+:root.dark {
+    --bg-color: #1a1a1a;
+    --text-color: #bdbdbd;
+    --card-bg: #2d2d2d;
+    --text-title-color: #ffffff;
+    --card-border: #cccacad7;
+    /* 其他深色主题变量 */
+}
+
+/* 应用基础样式 */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-title-color);
+    transition: background-color 0.3s, color 0.3s;
+}
