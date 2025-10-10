@@ -5,21 +5,13 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: () => import('@/App.vue'),
-
-      children: [
-        {
-          path: '/',
-          name: 'dashboard',
-          component: () => import('@/views/Dashboard.vue'),
-        },
-        {
-          path: '/precipitation',
-          name: 'precipitation',
-          component: () => import('@/views/PrecipitationMap.vue'),
-        },
-      ]
+      name: 'dashboard',
+      component: () => import('@/views/Dashboard.vue'),
+    },
+    {
+      path: '/precipitation',
+      name: 'precipitation',
+      component: () => import('@/views/PrecipitationMap.vue'),
     },
   ],
 })

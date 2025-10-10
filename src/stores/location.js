@@ -26,8 +26,10 @@ export const useGetLocationStore = defineStore("getlocation", () => {
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
+          // 先保存经纬度，确保在catch块中也能访问
+          const { latitude, longitude } = position.coords
+          
           try {
-            const { latitude, longitude } = position.coords
             const addressInfo = await getAddressByCoordinates(latitude, longitude)
 
             location.value = {

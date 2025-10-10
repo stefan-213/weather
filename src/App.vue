@@ -11,6 +11,9 @@
             <div class="main">
                 <router-view></router-view>
             </div>
+            <div class="footer">
+                <Footer></Footer>
+            </div>
         </div>
     </div>
 </template>
@@ -18,6 +21,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import Navbar from './components/Navbar.vue';
+import Footer from './components/Footer.vue';
 import Loading from './components/Loading.vue';
 import { useWeatherStore } from './stores/weather';
 import { useGetLocationStore } from './stores/location';
@@ -115,7 +119,7 @@ setTimeout(() => {
 }
 
 .main{
-    padding-top: 40px;
+    padding-top: 80px;
 }
 
 /* 淡入动画，提升用户体验 */
