@@ -1,25 +1,53 @@
 <template>
-  <div class="container">
-    <div class="icon sun-shower">
-      <div class="cloud"></div>
-      <div class="sun">
-        <div class="rays"></div>
+  <div v-if="loading" class="loading-overlay">
+    <div class="loading-content">
+      <div class="icon sun-shower">
+        <div class="cloud"></div>
+        <div class="sun">
+          <div class="rays"></div>
+        </div>
+        <div class="rain"></div>
       </div>
-      <div class="rain"></div>
+      <div class="loading-text">{{ loadingText || '加载天气数据中...' }}</div>
     </div>
   </div>
 </template>
 
 <script setup>
+// 定义props，允许外部控制显示和文本内容
+const props = defineProps({
+  loading: {
+    type: Boolean,
+    default: true
+  },
+  loadingText: {
+    type: String,
+    default: ''
+  }
+})
 </script>
 
 <style scoped>
-.container {
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.24);
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background: #E9E9E9;
+  z-index: 9999;
+  transition: opacity 0.3s ease;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .icon {
@@ -27,10 +55,19 @@
   display: inline-block;
   width: 12em;
   height: 10em;
-  font-size: 1em;
+  font-size: 1.2em;
   color: #fff;
 }
 
+.loading-text {
+  margin-top: 20px;
+  font-size: 18px;
+  color: #5fabc7;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* 动画图标样式保持不变 */
 .cloud {
   position: absolute;
   z-index: 1;
@@ -39,7 +76,7 @@
   width: 3.6875em;
   height: 3.6875em;
   margin: -1.84375em;
-  background: #ffffff; /* 白色云朵 */
+  background: #ffffff;
   border-radius: 50%;
   box-shadow:
     -2.1875em 0.6875em 0 -0.6875em,
@@ -57,7 +94,7 @@
   display: block;
   width: 4.5625em;
   height: 1em;
-  background: #ffffff; /* 白色云朵 */
+  background: #ffffff;
   box-shadow: 0 0.4375em 0 -0.0625em #fff;
 }
 
@@ -68,7 +105,7 @@
   width: 2.5em;
   height: 2.5em;
   margin: -1.25em;
-  background: #ffa500; /* 橙色太阳 */
+  background: #ffa500;
   border-radius: 50%;
   box-shadow: 0 0 0 0.375em #ffa500;
   animation: spin 12s infinite linear;
@@ -82,7 +119,7 @@
   width: 0.375em;
   height: 1.125em;
   margin-left: -0.1875em;
-  background: #ffa500; /* 橙色光线 */
+  background: #ffa500;
   border-radius: 0.25em;
   box-shadow: 0 5.375em #ffa500;
 }
@@ -119,7 +156,6 @@
   width: 3.75em;
   height: 3.75em;
   margin: 0.375em 0 0 -2em;
-  /* background: ; */
 }
 
 .rain:after {
@@ -172,6 +208,19 @@
       0.625em 0.875em 0 -0.125em rgba(255,255,255,0.2),
       -0.875em 1.125em 0 -0.125em rgba(255,255,255,0.2),
       -1.375em -0.125em 0 #0cf;
+  }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .icon {
+    width: 10em;
+    height: 8em;
+    font-size: 1em;
+  }
+  
+  .loading-text {
+    font-size: 16px;
   }
 }
 </style>

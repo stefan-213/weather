@@ -10,7 +10,7 @@ export const useGetLocationStore = defineStore("getlocation", () => {
     cityCode: "", // 城市名称作为标识
     chineseName: ""
   });
-  const loading = ref(true);
+  const loading = ref(false); // 修改为初始为false，避免初始就显示加载状态
   const error = ref(null);
 
   // 获取当前位置

@@ -114,8 +114,9 @@
                         </div>
                     </div>
 
-                    <!-- 加载状态 -->
-                    <div class="cc-container" v-if="weatherStore.loading">
+                    <!-- 加载状态 - 由于全局Loading组件的存在，这里的加载状态可能不会显示 -->
+                    <!-- 但保留此代码作为降级处理，以防全局Loading组件失效 -->
+                    <div class="cc-container" v-if="weatherStore.loading && !error">
                         <div class="loading-container">
                             <div class="loading-spinner"></div>
                             <div class="loading-text">加载天气数据中...</div>
@@ -429,10 +430,8 @@ onMounted(() => {
     // 预加载常用天气图标
     preloadCommonIcons();
     
-    // 如果还没有天气数据，尝试获取当前位置天气
-    if (!weatherStore.currentWeather && !weatherStore.loading) {
-        weatherStore.useCurrentLocation()
-    }
+    // 注意：现在位置和天气数据的获取已在App.vue中统一管理
+    // 这里只需专注于渲染逻辑
 
 });
 
