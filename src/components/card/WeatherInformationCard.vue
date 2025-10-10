@@ -452,7 +452,7 @@ const getIndexValueClass = (level) => {
 }
 
 .level-3 {
-  background-color: #FF6B6B; /* 一般/中等 */
+  background-color: #45B7D1; /* 一般/中等 */
 }
 
 .level-4 {
@@ -460,6 +460,6 @@ const getIndexValueClass = (level) => {
 }
 
 .level-5 {
-  background-color: #45B7D1; /* 不适宜/很差 */
+  background-color: #FF6B6B; /* 不适宜/很差 */
 }
 </style>

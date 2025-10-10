@@ -42,12 +42,10 @@ onMounted(() => {
 // 添加主题变更事件监听器
   window.addEventListener('theme-change', handleThemeChange);
 
-  // 添加初始显示延迟
-  setTimeout(() => {
-    if (navbarRef.value) {
+
+  if (navbarRef.value) {
       navbarRef.value.classList.add('visible');
-    }
-  }, 300);
+  }
   
   // 添加滚动事件监听器
   window.addEventListener('scroll', handleScroll);
@@ -90,7 +88,7 @@ onBeforeUnmount(() => {
   background-color: var(--card-bg);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   position: fixed;
-  top: -100px; /* 初始位置在视口上方 */
+  top: -100px;
   left: 0;
   z-index: 1000;
   transition: top 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
