@@ -88,7 +88,8 @@ const registerMap = async () => {
   if (isMapRegistered.value) return
   
   try {
-    const response = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+    // 使用正确的 echarts 地图数据 CDN 路径
+    const response = await fetch('https://cdn.jsdelivr.net/npm/echarts/map/json/china.json')
     const chinaJson = await response.json()
     echarts.registerMap('china', chinaJson)
     isMapRegistered.value = true
@@ -238,7 +239,7 @@ const updateChart = () => {
         type: 'map',
         map: 'china',
         roam: true,
-        zoom: 1.75,
+        zoom: 1.25,
         center: [105, 36],
         scaleLimit: { min: 1, max: 3 },
         label: { 
