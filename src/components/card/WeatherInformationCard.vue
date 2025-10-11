@@ -442,7 +442,7 @@ const getIndexValueClass = (level) => {
   color: var(--card-bg);
 }
 
-/* 为不同等级的指数值设置不同的颜色 */
+
 .level-1 {
   background-color: #28a745; /* 很适宜/很好 */
 }
@@ -456,7 +456,7 @@ const getIndexValueClass = (level) => {
 }
 
 .level-4 {
-  background-color: #4ECDC4; /* 较不适宜/较差 */
+  background-color: #FAD689; /* 较不适宜/较差 */
 }
 
 .level-5 {

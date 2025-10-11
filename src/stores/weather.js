@@ -87,10 +87,22 @@ export const useWeatherStore = defineStore('weather', () => {
             return
         }
 
+        // 生成缓存键
+        const cacheKey = cacheManager.getCacheKey(location.value.lat, location.value.lon) + '_daily'
+        
+        // 尝试从缓存获取数据
+        const cachedData = await cacheManager.get(cacheKey)
+        if (cachedData) {
+            // 使用缓存数据
+            dailyForecast.value = cachedData.dailyForecast
+            return
+        }
+
         loading.value = true
         error.value = null
 
         try {
+            const startTime = Date.now()
             const response = await axios.get(
                 `https://api.openweathermap.org/data/2.5/forecast?lat=${location.value.lat}&lon=${location.value.lon}&appid=${import.meta.env.VITE_OPENWEATHER_API_KEY}&units=metric&lang=zh_cn`
             )
@@ -120,6 +132,20 @@ export const useWeatherStore = defineStore('weather', () => {
 
                 // 转换为数组并限制为7天
                 dailyForecast.value = Object.values(forecastsByDate).slice(0, 7)
+                
+                // 缓存数据
+                const dataToCache = {
+                    dailyForecast: dailyForecast.value
+                }
+                await cacheManager.set(cacheKey, dataToCache)
+                
+                // 记录性能数据
+                if (CACHE_CONFIG.DEBUG) {
+                    cacheStats.value.misses++
+                    cacheStats.value.totalRequests++
+                    const timeSaved = Date.now() - startTime
+                    cacheStats.value.cacheTimeSaved += timeSaved
+                }
             } else {
                 throw new Error('获取一周天气数据失败')
             }
@@ -129,14 +155,26 @@ export const useWeatherStore = defineStore('weather', () => {
             loading.value = false
         }
     }
-
+    const CACHE_DURATION = 10 * 60 * 1000; // 10分钟缓存
     // 获取完整的天气信息（包括当前天气48小时预报和6天预报）
     async function getAllWeather() {
         if (!location.value.lat || !location.value.lon) {
             error.value = '请先设置位置信息'
             return
         }
+        const cacheKey = `weather_${location.value.lat}_${location.value.lon}`
+        const cached = localStorage.getItem(cacheKey)
 
+        if (cached) {
+            const { data, timestamp } = JSON.parse(cached)
+            if (Date.now() - timestamp < CACHE_DURATION) {
+                // 使用缓存数据
+                currentWeather.value = data.currentWeather
+                hourlyForecast.value = data.hourlyForecast
+                dailyForecast.value = data.dailyForecast
+                return
+            }
+        }
         loading.value = true
         error.value = null
 

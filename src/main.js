@@ -5,6 +5,7 @@ import App from './App.vue'
 import router from './router'
 import * as echarts from 'echarts';
 import '@/assets/style/main.css'
+import { inject } from '@vercel/analytics';
 
 const app = createApp(App)
 
@@ -13,6 +14,7 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 app.config.globalProperties.$echarts = echarts;
+inject();
 
 console.log('应用初始化中...')
 

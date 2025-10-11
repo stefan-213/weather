@@ -48,11 +48,7 @@ const getCurrentAndWeather = async () => {
 const searchCityAndWeather = async (cityName) => {
     try {
         await weatherStore.setLocationByCity(cityName)
-        // console.log('=== 搜索城市天气信息 ===', weatherStore.currentWeather, weatherStore.location)
-        console.log('=== 搜索城市信息 ===',  weatherStore.location);
-        console.log('=== 搜索当前天气信息 ===', weatherStore.currentWeather);
-        console.log('=== 搜48小时天气信息 ===', weatherStore.hourlyForecast);
-        console.log('=== 搜索6天预报信息 ===', weatherStore.dailyForecast);
+
     } catch (error) {
         console.error('搜索城市或获取天气失败:', error)
     }

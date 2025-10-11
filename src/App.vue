@@ -19,12 +19,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch ,onMounted} from 'vue'
 import Navbar from './components/Navbar.vue';
 import Footer from './components/Footer.vue';
 import Loading from './components/Loading.vue';
 import { useWeatherStore } from './stores/weather';
 import { useGetLocationStore } from './stores/location';
+import { inject } from '@vercel/analytics';
 
 // 初始化store
 const weatherStore = useWeatherStore()
@@ -103,6 +104,10 @@ setTimeout(() => {
             })
     }
 }, 100)
+
+onMounted(() => {
+    inject();
+})
 </script>
 
 <style scoped>
