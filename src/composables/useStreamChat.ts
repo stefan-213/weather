@@ -3,7 +3,7 @@
  * 特性：正则缓冲区解析 + 超时感知 + 错误兜底
  */
 
-import { ref, onUnmounted, nextTick } from 'vue'
+import { ref, onUnmounted } from 'vue'
 
 export interface ChatMessage {
   role: 'user' | 'assistant'
@@ -22,9 +22,6 @@ export function useStreamChat() {
 
   // API 基础 URL
   const API_BASE = import.meta.env.VITE_AI_API_URL || 'http://localhost:3001'
-
-  // SSE 数据解析正则（支持跨行 JSON）
-  const SSE_REGEX = /data:\s*(.*?)\n\n/gs
 
   // 格式化时间
   const formatTime = () => {
@@ -108,10 +105,18 @@ export function useStreamChat() {
         lastChunkTime = Date.now()
         buffer += decoder.decode(value, { stream: true })
 
-        // 正则解析 SSE 数据（支持跨行 JSON）
-        let match
-        while ((match = SSE_REGEX.exec(buffer)) !== null) {
-          const data = match[1]
+        // 按 SSE 格式解析：每条数据以 "data: xxx\n\n" 结尾
+        // 持续处理完整的 data: 行，直到遇到不完整的行（留在 buffer）
+        while (true) {
+          const lineEnd = buffer.indexOf('\n')
+          if (lineEnd === -1) break
+
+          const line = buffer.slice(0, lineEnd).trim()
+          buffer = buffer.slice(lineEnd + 1)
+
+          if (!line.startsWith('data: ')) continue
+
+          const data = line.slice(6)
 
           if (data === '[DONE]') {
             break
@@ -127,13 +132,9 @@ export function useStreamChat() {
               throw new Error(parsed.error)
             }
           } catch {
-            // 忽略解析错误（可能是不完整的 JSON）
+            // 忽略解析错误
           }
         }
-
-        // 清理已处理部分
-        buffer = buffer.slice(SSE_REGEX.lastIndex)
-        SSE_REGEX.lastIndex = 0
       }
 
       assistantMessage.isStreaming = false

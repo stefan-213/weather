@@ -16,6 +16,7 @@ app.use(cors({
 
     const allowedOrigins = [
       'https://weather-iota-green.vercel.app',
+      'http://localhost:5173',
     ]
 
     if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
