@@ -4,9 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/app.ts",
-    "build": "tsc && node dist/app.js",
-    "start": "node dist/app.js",
-    "postinstall": "npm run build"
+    "build": "tsc",
+    "start": "node dist/app.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
