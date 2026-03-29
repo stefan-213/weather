@@ -11,11 +11,23 @@ const PORT = process.env.PORT || 3001
 // 禁用 ETag 和 compression 来确保流式输出
 app.disable('etag')
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL as string,
-    'https://weather-iota-green.vercel.app',
-    /\.vercel\.app$/,
-  ],
+  origin: (origin, callback) => {
+    // 允许无 origin（比如 curl / postman）
+    if (!origin) return callback(null, true)
+
+    const allowedOrigins = [
+      'https://weather-iota-green.vercel.app',
+    ]
+
+    // 允许 vercel 所有子域
+    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      return callback(null, true)
+    }
+
+    return callback(new Error('Not allowed by CORS'))
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }))
 app.use(express.json())
