@@ -11,7 +11,11 @@ const PORT = process.env.PORT || 3001
 // 禁用 ETag 和 compression 来确保流式输出
 app.disable('etag')
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: [
+    process.env.FRONTEND_URL as string,
+    'https://weather-iota-green.vercel.app',
+    /\.vercel\.app$/,
+  ],
   credentials: true
 }))
 app.use(express.json())
