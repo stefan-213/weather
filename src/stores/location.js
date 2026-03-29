@@ -7,10 +7,10 @@ export const useGetLocationStore = defineStore("getlocation", () => {
     lat: "",
     lon: "",
     address: "",
-    cityCode: "", // 城市名称作为标识
+    cityCode: "",
     chineseName: ""
   });
-  const loading = ref(false); // 修改为初始为false，避免初始就显示加载状态
+  const loading = ref(false);
   const error = ref(null);
 
   // 获取当前位置
@@ -28,7 +28,7 @@ export const useGetLocationStore = defineStore("getlocation", () => {
         async (position) => {
           // 先保存经纬度，确保在catch块中也能访问
           const { latitude, longitude } = position.coords
-          
+
           try {
             const addressInfo = await getAddressByCoordinates(latitude, longitude)
 
@@ -74,12 +74,14 @@ export const useGetLocationStore = defineStore("getlocation", () => {
 
     try {
       const response = await axios.get(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(cityName)}&limit=1&appid=${import.meta.env.VITE_OPENWEATHER_API_KEY}`
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(cityName)}&limit=5&appid=${import.meta.env.VITE_OPENWEATHER_API_KEY}`
       )
 
       if (response.data && response.data.length > 0) {
-        const locationData = response.data[0]
-
+        // const locationData = response.data[0]
+        const locationData = response.data.find(item =>{
+          item.local_names?.zh === cityName
+        })
         location.value = {
           lat: locationData.lat,
           lon: locationData.lon,

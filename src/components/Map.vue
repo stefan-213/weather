@@ -58,6 +58,40 @@ const provinceCoordinates = {
 const provinceWeatherData = ref({})
 const loading = ref(false)
 
+// 缓存配置
+const CACHE_KEY = 'chinaWeatherCache'
+const CACHE_DURATION = 30 * 60 * 1000 // 30分钟
+
+// 加载缓存数据
+const loadCache = () => {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY)
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached)
+      if (Date.now() - timestamp < CACHE_DURATION) {
+        provinceWeatherData.value = data
+        updateChart()
+        return true
+      }
+    }
+  } catch (e) {
+    console.warn('加载缓存失败:', e)
+  }
+  return false
+}
+
+// 保存缓存数据
+const saveCache = () => {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      data: provinceWeatherData.value,
+      timestamp: Date.now()
+    }))
+  } catch (e) {
+    console.warn('保存缓存失败:', e)
+  }
+}
+
 // 根据主题获取颜色配置
 const getThemeColors = () => {
   return currentTheme.value === 'dark' 
@@ -139,33 +173,43 @@ const getProvinceWeather = async (lat, lon, provinceName) => {
 // 获取所有省份的天气数据
 const getAllProvinceWeather = async () => {
   if (loading.value) return
-  
+
   loading.value = true
-  
+
+  // 先尝试加载缓存（快速显示）
+  loadCache()
+
   try {
-    const promises = Object.entries(provinceCoordinates).map(async ([provinceName, coord]) => {
-      const [lng, lat] = coord
-      const weather = await getProvinceWeather(lat, lng, provinceName)
-      return {
-        name: provinceName,  // 直接使用name字段
-        value: weather ? weather.temp : null,  // 直接使用value字段
-        weather: weather
-      }
-    })
-    
-    const results = await Promise.all(promises)
-    
-    // 更新天气数据
-    results.forEach(result => {
-      if (result.value !== null) {
-        provinceWeatherData.value[result.name] = {
-          value: result.value,
-          weather: result.weather
-        }
-      }
-    })
-    
-    updateChart()
+    const CONCURRENCY = 5 // 最多5个并发
+    const entries = Object.entries(provinceCoordinates)
+
+    // 分批处理，每批5个
+    for (let i = 0; i < entries.length; i += CONCURRENCY) {
+      const batch = entries.slice(i, i + CONCURRENCY)
+
+      await Promise.all(
+        batch.map(async ([provinceName, coord]) => {
+          const [lng, lat] = coord
+          try {
+            const weather = await getProvinceWeather(lat, lng, provinceName)
+            if (weather) {
+              provinceWeatherData.value[provinceName] = {
+                value: weather.temp,
+                weather: weather
+              }
+            }
+          } catch (e) {
+            console.warn(`${provinceName} 加载失败:`, e.message)
+          }
+        })
+      )
+
+      // 每批完成后立即更新图表，渐进式显示
+      updateChart()
+    }
+
+    // 全部完成后保存缓存
+    saveCache()
   } catch (error) {
     console.error('获取省份天气数据失败:', error)
   } finally {
