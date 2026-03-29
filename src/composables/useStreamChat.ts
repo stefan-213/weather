@@ -1,6 +1,6 @@
 /**
- * 流式聊天 Composable
- * 支持 SSE 流式输出 + Markdown 渲染
+ * 流式聊天 Composable - 工业级版本
+ * 特性：正则缓冲区解析 + 超时感知 + 错误兜底
  */
 
 import { ref, onUnmounted, nextTick } from 'vue'
@@ -17,9 +17,14 @@ export function useStreamChat() {
   const loading = ref(false)
   const error = ref<string | null>(null)
   let abortController: AbortController | null = null
+  let timeoutChecker: ReturnType<typeof setInterval> | null = null
+  let lastChunkTime = 0
 
-  // API 基础 URL（开发环境指向后端服务）
+  // API 基础 URL
   const API_BASE = import.meta.env.VITE_AI_API_URL || 'http://localhost:3001'
+
+  // SSE 数据解析正则（支持跨行 JSON）
+  const SSE_REGEX = /data:\s*(.*?)\n\n/gs
 
   // 格式化时间
   const formatTime = () => {
@@ -42,6 +47,7 @@ export function useStreamChat() {
 
     loading.value = true
     error.value = null
+    lastChunkTime = Date.now()
 
     // 添加助手消息占位
     const assistantMessage: ChatMessage = {
@@ -64,7 +70,7 @@ export function useStreamChat() {
           message: content,
           history: messages.value
             .filter(m => !m.isStreaming)
-            .slice(-20) // 只传最近 20 条对话
+            .slice(-20)
             .map(m => ({ role: m.role, content: m.content }))
         }),
         signal: abortController.signal
@@ -83,43 +89,51 @@ export function useStreamChat() {
       const decoder = new TextDecoder()
       let buffer = ''
 
+      // 超时感知：每 5 秒检查一次，15 秒无响应则中断
+      timeoutChecker = setInterval(() => {
+        if (Date.now() - lastChunkTime > 15000) {
+          abortController?.abort()
+          assistantMessage.content += '\n\n⚠️ 响应超时，请重试'
+          assistantMessage.isStreaming = false
+          loading.value = false
+          clearInterval(timeoutChecker!)
+        }
+      }, 5000)
+
       while (true) {
         const { done, value } = await reader.read()
 
         if (done) break
 
+        lastChunkTime = Date.now()
         buffer += decoder.decode(value, { stream: true })
 
-        // 处理 SSE 数据
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
+        // 正则解析 SSE 数据（支持跨行 JSON）
+        let match
+        while ((match = SSE_REGEX.exec(buffer)) !== null) {
+          const data = match[1]
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6)
+          if (data === '[DONE]') {
+            break
+          }
 
-            if (data === '[DONE]') {
-              break
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed.content) {
+              assistantMessage.content += parsed.content
+              messages.value = [...messages.value]
             }
-
-            try {
-              const parsed = JSON.parse(data)
-              if (parsed.content) {
-                // 更新内容
-                assistantMessage.content += parsed.content
-                // 强制 Vue 更新 DOM
-                nextTick(() => {
-                  messages.value = [...messages.value]
-                })
-              }
-              if (parsed.error) {
-                throw new Error(parsed.error)
-              }
-            } catch (e) {
-              // 忽略解析错误（可能是不完整的 JSON）
+            if (parsed.error) {
+              throw new Error(parsed.error)
             }
+          } catch {
+            // 忽略解析错误（可能是不完整的 JSON）
           }
         }
+
+        // 清理已处理部分
+        buffer = buffer.slice(SSE_REGEX.lastIndex)
+        SSE_REGEX.lastIndex = 0
       }
 
       assistantMessage.isStreaming = false
@@ -127,16 +141,22 @@ export function useStreamChat() {
 
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
-        console.log('请求已取消')
+        if (assistantMessage.content && !assistantMessage.content.includes('超时')) {
+          assistantMessage.content += '\n\n[已停止生成]'
+        }
       } else {
         error.value = err instanceof Error ? err.message : '发送失败'
         assistantMessage.content = '抱歉，发生了错误，请稍后重试。'
-        assistantMessage.isStreaming = false
-        messages.value = [...messages.value]
       }
+      assistantMessage.isStreaming = false
+      messages.value = [...messages.value]
     } finally {
       loading.value = false
       abortController = null
+      if (timeoutChecker) {
+        clearInterval(timeoutChecker)
+        timeoutChecker = null
+      }
     }
   }
 
@@ -148,12 +168,15 @@ export function useStreamChat() {
       abortController.abort()
       abortController = null
     }
-    // 标记正在流式的消息为已完成
     const streamingMsg = messages.value.find(m => m.isStreaming)
     if (streamingMsg) {
       streamingMsg.isStreaming = false
     }
     loading.value = false
+    if (timeoutChecker) {
+      clearInterval(timeoutChecker)
+      timeoutChecker = null
+    }
   }
 
   /**
@@ -175,6 +198,9 @@ export function useStreamChat() {
   onUnmounted(() => {
     if (abortController) {
       abortController.abort()
+    }
+    if (timeoutChecker) {
+      clearInterval(timeoutChecker)
     }
   })
 

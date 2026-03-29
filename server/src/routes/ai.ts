@@ -78,15 +78,27 @@ aiRouter.post('/chat/stream', async (req, res) => {
     res.setHeader('Connection', 'keep-alive')
     ;(res as any).flushHeaders?.()
 
+    // 心跳机制：每 15 秒发送 ping 防止连接超时
+    const keepAlive = setInterval(() => {
+      res.write(': ping\n\n')
+    }, 20000)
+
+    // 清理心跳
+    req.on('close', () => {
+      clearInterval(keepAlive)
+    })
+
     for await (const chunk of streamChat(message, history as ChatMessage[])) {
       res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`)
       ;(res as any).flush?.()
     }
 
+    clearInterval(keepAlive)
     res.write('data: [DONE]\n\n')
     res.end()
   } catch (error) {
     console.error('Stream error:', error)
+    clearInterval(keepAlive)
     if (!res.headersSent) {
       res.status(500).json({
         success: false,

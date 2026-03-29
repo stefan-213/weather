@@ -12,14 +12,12 @@ const PORT = process.env.PORT || 3001
 app.disable('etag')
 app.use(cors({
   origin: (origin, callback) => {
-    // 允许无 origin（比如 curl / postman）
     if (!origin) return callback(null, true)
 
     const allowedOrigins = [
       'https://weather-iota-green.vercel.app',
     ]
 
-    // 允许 vercel 所有子域
     if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
       return callback(null, true)
     }
@@ -30,6 +28,12 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }))
+
+// 添加 X-Accel-Buffering: no 防止 nginx 类代理缓冲
+app.use((req, res, next) => {
+  res.setHeader('X-Accel-Buffering', 'no')
+  next()
+})
 app.use(express.json())
 
 // 健康检查
