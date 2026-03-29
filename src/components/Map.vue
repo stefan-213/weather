@@ -7,8 +7,10 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import * as echarts from 'echarts'
+import { useMapWorker } from '@/composables/useMapWorker'
 
 const chartContainer = ref(null)
+const mapWorker = useMapWorker()
 const isMapRegistered = ref(false)
 let chartInstance = null
 
@@ -176,8 +178,18 @@ const getAllProvinceWeather = async () => {
 
   loading.value = true
 
-  // 先尝试加载缓存（快速显示）
-  loadCache()
+  // 初始化 Worker 并尝试从 Worker 加载缓存
+  mapWorker.initWorker()
+  try {
+    const cachedData = await mapWorker.loadCache()
+    if (cachedData) {
+      provinceWeatherData.value = cachedData
+      updateChart()
+    }
+  } catch (e) {
+    // 降级到主线程缓存加载
+    loadCache()
+  }
 
   try {
     const CONCURRENCY = 5 // 最多5个并发
@@ -208,8 +220,11 @@ const getAllProvinceWeather = async () => {
       updateChart()
     }
 
-    // 全部完成后保存缓存
-    saveCache()
+    // 全部完成后通过 Worker 保存缓存（后台执行，不阻塞 UI）
+    mapWorker.saveCache(provinceWeatherData.value).catch(() => {
+      // 降级到主线程缓存保存
+      saveCache()
+    })
   } catch (error) {
     console.error('获取省份天气数据失败:', error)
   } finally {
@@ -381,6 +396,8 @@ onBeforeUnmount(() => {
   }
   // 移除主题切换事件监听
   window.removeEventListener('theme-change', handleThemeChange)
+  // 销毁 Worker
+  mapWorker.destroy()
 })
 </script>
 

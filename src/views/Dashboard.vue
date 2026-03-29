@@ -1,5 +1,5 @@
 <template>
-    <div class="dashboard">       
+    <div class="dashboard">
         <div class="content">
             <div class="mapBox">
                 <Map></Map>
@@ -9,6 +9,9 @@
                 <WeatherInformationCard></WeatherInformationCard>
             </div>
         </div>
+
+        <!-- 浮动 AI 助手 -->
+        <FloatingAIAssistant></FloatingAIAssistant>
         <div class="chart">            
             <div class="chart-container">
                 <div class="chart-option">
@@ -144,6 +147,7 @@ import * as echarts from 'echarts';
 import Map from '../components/Map.vue'
 import WeatherCard from '../components/card/WeatherCard.vue'
 import WeatherInformationCard from '@/components/card/WeatherInformationCard.vue';
+import FloatingAIAssistant from '@/components/FloatingAIAssistant.vue';
 import { useWeatherIcons } from '../composables/useWeatherIcons';
 
 const selectedOption = ref('48-hour');
@@ -528,18 +532,17 @@ onBeforeUnmount(() => {
 }
 
 .weather-card {
-    width: 17%; 
+    width: 380px;
     margin-left: 3%;
     margin-right: 1%;
     margin-top: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    height: 100%;
+    gap: 16px;
 }
 
-.chart { 
+.chart {
     width: 100%;
     height: 500px;
     display: flex;
