@@ -69,6 +69,9 @@ aiRouter.post('/chat', async (req, res) => {
  * 流式对话
  */
 aiRouter.post('/chat/stream', async (req, res) => {
+  // 心跳机制：声明在 try 外以便 finally 访问
+  let keepAlive: ReturnType<typeof setInterval> | null = null
+
   try {
     const { message, history } = chatSchema.parse(req.body)
 
@@ -78,14 +81,14 @@ aiRouter.post('/chat/stream', async (req, res) => {
     res.setHeader('Connection', 'keep-alive')
     ;(res as any).flushHeaders?.()
 
-    // 心跳机制：每 15 秒发送 ping 防止连接超时
-    const keepAlive = setInterval(() => {
+    // 每 20 秒发送 ping 防止连接超时
+    keepAlive = setInterval(() => {
       res.write(': ping\n\n')
     }, 20000)
 
     // 清理心跳
     req.on('close', () => {
-      clearInterval(keepAlive)
+      if (keepAlive) clearInterval(keepAlive)
     })
 
     for await (const chunk of streamChat(message, history as ChatMessage[])) {
@@ -93,12 +96,10 @@ aiRouter.post('/chat/stream', async (req, res) => {
       ;(res as any).flush?.()
     }
 
-    clearInterval(keepAlive)
     res.write('data: [DONE]\n\n')
     res.end()
   } catch (error) {
     console.error('Stream error:', error)
-    clearInterval(keepAlive)
     if (!res.headersSent) {
       res.status(500).json({
         success: false,
@@ -107,6 +108,8 @@ aiRouter.post('/chat/stream', async (req, res) => {
     } else {
       res.end()
     }
+  } finally {
+    if (keepAlive) clearInterval(keepAlive)
   }
 })
 
