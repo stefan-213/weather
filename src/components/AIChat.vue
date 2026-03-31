@@ -14,7 +14,7 @@
           <img v-else class="avatar-img" src="@/assets/img/ai助手.png" alt="AI" />
         </div>
         <div class="message-content">
-          <div class="message-text" v-html="renderMarkdown(message.content)"></div>
+          <div class="message-text" v-html="renderMarkdown(message)"></div>
           <div v-if="message.isStreaming" class="typing-indicator">
             <span></span><span></span><span></span>
           </div>
@@ -68,6 +68,7 @@
 import { ref, nextTick, onMounted, watch } from 'vue'
 import { marked } from 'marked'
 import { useStreamChat } from '@/composables/useStreamChat'
+import { useIncrementalRender } from '@/composables/useIncrementalRender'
 import { useWeatherStore } from '@/stores/weather'
 
 const weatherStore = useWeatherStore()
@@ -80,6 +81,9 @@ const {
   stopGeneration,
   clearMessages
 } = useStreamChat()
+
+// 增量渲染 hook
+const { renderIncremental, clearState, getCachedHtml } = useIncrementalRender()
 
 const userInput = ref('')
 const messagesContainer = ref(null)
@@ -114,14 +118,17 @@ const sendMessage = async () => {
   scrollToBottom()
 }
 
-// 渲染 Markdown
-const renderMarkdown = (text) => {
-  if (!text) return ''
-  try {
-    return marked.parse(text)
-  } catch {
-    return text
+// 渲染 Markdown - 使用增量渲染
+const renderMarkdown = (message) => {
+  if (!message.content) return ''
+
+  // 非流式消息使用缓存
+  if (!message.isStreaming) {
+    return getCachedHtml(message.content)
   }
+
+  // 流式消息使用增量渲染
+  return renderIncremental(message.id, message.content, true)
 }
 
 // 滚动到底部
@@ -160,12 +167,14 @@ onMounted(() => {
     summary += `风速：${windSpeed} m/s`
 
     messages.value.push({
+      id: `welcome_${Date.now()}`,
       role: 'assistant',
       content: summary + '\n\n有什么想了解的吗？可以问我："今天适合跑步吗？"、"明天要不要带伞？"等',
       time: formatTime()
     })
   } else {
     messages.value.push({
+      id: `welcome_${Date.now()}`,
       role: 'assistant',
       content: '你好！有什么天气相关的问题都可以问我！',
       time: formatTime()

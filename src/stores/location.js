@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, reactive } from "vue";
 import axios from "axios";
 
 export const useGetLocationStore = defineStore("getlocation", () => {
@@ -12,6 +12,16 @@ export const useGetLocationStore = defineStore("getlocation", () => {
   });
   const loading = ref(false);
   const error = ref(null);
+
+  // 定位统计
+  const locationStats = reactive({
+    geolocationSuccess: 0,
+    geolocationTimeout: 0,
+    geolocationDenied: 0,
+    geolocationError: 0,
+    searchCity: 0,
+    defaultCity: 0
+  });
 
   // 获取当前位置
   async function getCurrentLocation() {
@@ -28,6 +38,7 @@ export const useGetLocationStore = defineStore("getlocation", () => {
         async (position) => {
           // 先保存经纬度，确保在catch块中也能访问
           const { latitude, longitude } = position.coords
+          locationStats.geolocationSuccess++
 
           try {
             const addressInfo = await getAddressByCoordinates(latitude, longitude)
@@ -56,6 +67,14 @@ export const useGetLocationStore = defineStore("getlocation", () => {
         },
         (err) => {
           error.value = getErrorMessage(err)
+          // 根据错误类型统计
+          if (err.code === err.TIMEOUT) {
+            locationStats.geolocationTimeout++
+          } else if (err.code === err.PERMISSION_DENIED) {
+            locationStats.geolocationDenied++
+          } else {
+            locationStats.geolocationError++
+          }
           loading.value = false
           reject(error.value)
         }
@@ -78,16 +97,17 @@ export const useGetLocationStore = defineStore("getlocation", () => {
       )
 
       if (response.data && response.data.length > 0) {
-        // const locationData = response.data[0]
-        const locationData = response.data.find(item =>{
+        // 优先查找 local_names.zh 匹配的城市，找不到则用第一个结果
+        const locationData = response.data.find(item =>
           item.local_names?.zh === cityName
-        })
+        ) || response.data[0]
+        locationStats.searchCity++
         location.value = {
           lat: locationData.lat,
           lon: locationData.lon,
           address: `${locationData.name}, ${locationData.country}`,
           cityCode: locationData.name, // 使用城市名称作为标识
-          chineseName: locationData.local_names?.zh
+          chineseName: locationData.local_names?.zh || cityName
         }
 
         return location.value
@@ -142,6 +162,27 @@ export const useGetLocationStore = defineStore("getlocation", () => {
     error.value = null
   }
 
+  // 打印统计信息（用于测试）
+  // function printStats() {
+  //   const total = locationStats.geolocationSuccess + locationStats.geolocationTimeout +
+  //                 locationStats.geolocationDenied + locationStats.geolocationError +
+  //                 locationStats.searchCity + locationStats.defaultCity
+  //   const successRate = total > 0
+  //       ? (locationStats.geolocationSuccess / (locationStats.geolocationSuccess +
+  //           locationStats.geolocationTimeout + locationStats.geolocationDenied +
+  //           locationStats.geolocationError) * 100).toFixed(1) + '%'
+  //       : 'N/A'
+
+  //   console.log('=== WeatherInsight 定位统计 ===')
+  //   console.log(`定位成功: ${locationStats.geolocationSuccess}`)
+  //   console.log(`定位超时: ${locationStats.geolocationTimeout}`)
+  //   console.log(`定位拒绝: ${locationStats.geolocationDenied}`)
+  //   console.log(`定位错误: ${locationStats.geolocationError}`)
+  //   console.log(`手动搜索: ${locationStats.searchCity}`)
+  //   console.log(`使用默认: ${locationStats.defaultCity}`)
+  //   console.log(`定位成功率: ${successRate}`)
+  // }
+
   return {
     location,
     loading,
@@ -149,6 +190,8 @@ export const useGetLocationStore = defineStore("getlocation", () => {
     getCurrentLocation,
     getLocationByCity,
     getAddressByCoordinates,
-    clearError
+    clearError,
+    locationStats,
+    // printStats
   }
 })

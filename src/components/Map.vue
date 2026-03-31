@@ -178,6 +178,13 @@ const getAllProvinceWeather = async () => {
 
   loading.value = true
 
+  // 检查主线程 localStorage 缓存（优先检查）
+  const cacheLoaded = loadCache()
+  if (cacheLoaded) {
+    loading.value = false
+    return
+  }
+
   // 初始化 Worker 并尝试从 Worker 加载缓存
   mapWorker.initWorker()
   try {
@@ -185,10 +192,11 @@ const getAllProvinceWeather = async () => {
     if (cachedData) {
       provinceWeatherData.value = cachedData
       updateChart()
+      loading.value = false
+      return
     }
   } catch (e) {
-    // 降级到主线程缓存加载
-    loadCache()
+    // 降级到主线程缓存加载（上面已检查过）
   }
 
   try {

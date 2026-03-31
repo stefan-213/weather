@@ -50,9 +50,9 @@ const loading = computed(() => {
 
 
 
-// 监听位置变化，如果位置存在但没有天气数据，则获取天气数据
+// 监听位置变化，当位置变化时重新获取天气数据
 watch(() => locationStore.location, (newLocation) => {
-    if (newLocation?.lat && newLocation?.lon && !weatherStore.currentWeather && !weatherStore.loading) {
+    if (newLocation?.lat && newLocation?.lon && !weatherStore.loading) {
         weatherStore.getAllWeather()
     }
 }, { immediate: true })

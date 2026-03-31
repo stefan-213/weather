@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
 import { useGetLocationStore } from './location'
@@ -11,6 +11,13 @@ export const useWeatherStore = defineStore('weather', () => {
     const dailyForecast = ref([]) // 6天预报
     const loading = ref(false)
     const error = ref(null)
+
+    // 缓存统计
+    const cacheStats = reactive({
+        hits: 0,
+        misses: 0,
+        totalRequests: 0
+    })
 
     const locationStore = useGetLocationStore()
     const location = computed(() => locationStore.location)
@@ -140,11 +147,11 @@ export const useWeatherStore = defineStore('weather', () => {
                 await cacheManager.set(cacheKey, dataToCache)
                 
                 // 记录性能数据
-                if (CACHE_CONFIG.DEBUG) {
-                    cacheStats.value.misses++
-                    cacheStats.value.totalRequests++
+                if (CACHE_CONFIG?.DEBUG) {
+                    cacheStats.misses++
+                    cacheStats.totalRequests++
                     const timeSaved = Date.now() - startTime
-                    cacheStats.value.cacheTimeSaved += timeSaved
+                    cacheStats.cacheTimeSaved = (cacheStats.cacheTimeSaved || 0) + timeSaved
                 }
             } else {
                 throw new Error('获取一周天气数据失败')
@@ -165,16 +172,23 @@ export const useWeatherStore = defineStore('weather', () => {
         const cacheKey = `weather_${location.value.lat}_${location.value.lon}`
         const cached = localStorage.getItem(cacheKey)
 
+        cacheStats.totalRequests++
+
         if (cached) {
             const { data, timestamp } = JSON.parse(cached)
             if (Date.now() - timestamp < CACHE_DURATION) {
                 // 使用缓存数据
+                cacheStats.hits++
                 currentWeather.value = data.currentWeather
                 hourlyForecast.value = data.hourlyForecast
                 dailyForecast.value = data.dailyForecast
+                // printStats()
                 return
             }
         }
+
+        cacheStats.misses++
+        // printStats()
         loading.value = true
         error.value = null
 
@@ -231,6 +245,18 @@ export const useWeatherStore = defineStore('weather', () => {
                 })
 
                 dailyForecast.value = Object.values(forecastsByDate).slice(0, 7)
+
+                // 保存到 localStorage 缓存
+                const cacheKey = `weather_${location.value.lat}_${location.value.lon}`
+                const dataToCache = {
+                    currentWeather: currentWeather.value,
+                    hourlyForecast: hourlyForecast.value,
+                    dailyForecast: dailyForecast.value
+                }
+                localStorage.setItem(cacheKey, JSON.stringify({
+                    data: dataToCache,
+                    timestamp: Date.now()
+                }))
             }
         } catch (err) {
             error.value = `获取天气数据失败: ${err.message}`
@@ -249,6 +275,18 @@ export const useWeatherStore = defineStore('weather', () => {
     function clearError() {
         error.value = null
     }
+
+    // 打印统计信息（用于测试）
+    // function printStats() {
+    //     const hitRate = cacheStats.totalRequests > 0
+    //         ? (cacheStats.hits / cacheStats.totalRequests * 100).toFixed(1) + '%'
+    //         : 'N/A'
+    //     console.log('=== WeatherInsight 缓存统计 ===')
+    //     console.log(`总请求次数: ${cacheStats.totalRequests}`)
+    //     console.log(`缓存命中: ${cacheStats.hits}`)
+    //     console.log(`缓存未命中: ${cacheStats.misses}`)
+    //     console.log(`缓存命中率: ${hitRate}`)
+    // }
 
     return {
         // 位置相关
@@ -270,5 +308,7 @@ export const useWeatherStore = defineStore('weather', () => {
         getDailyWeather,
         getAllWeather,
         clearError,
+        // printStats,
+        cacheStats,
     }
 })

@@ -1,11 +1,12 @@
 /**
  * 流式聊天 Composable - 工业级版本
- * 特性：正则缓冲区解析 + 超时感知 + 错误兜底
+ * 特性：正则缓冲区解析 + 超时感知 + 错误兜底 + 渲染优化
  */
 
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, nextTick } from 'vue'
 
 export interface ChatMessage {
+  id: string
   role: 'user' | 'assistant'
   content: string
   isStreaming?: boolean
@@ -19,6 +20,31 @@ export function useStreamChat() {
   let abortController: AbortController | null = null
   let timeoutChecker: ReturnType<typeof setInterval> | null = null
   let lastChunkTime = 0
+  let messageIdCounter = 0
+
+  // 生成唯一消息 ID
+  const generateMessageId = () => {
+    return `msg_${Date.now()}_${++messageIdCounter}`
+  }
+
+  // 渲染优化：批处理和 requestAnimationFrame
+  let pendingContent: string | null = null
+  let rafId: number | null = null
+
+  const flushContent = () => {
+    if (pendingContent !== null) {
+      messages.value = [...messages.value]
+      pendingContent = null
+    }
+    rafId = null
+  }
+
+  const queueContentUpdate = (content: string) => {
+    pendingContent = content
+    if (rafId === null) {
+      rafId = requestAnimationFrame(flushContent)
+    }
+  }
 
   // API 基础 URL
   const API_BASE = import.meta.env.VITE_AI_API_URL || 'http://localhost:3001'
@@ -37,6 +63,7 @@ export function useStreamChat() {
 
     // 添加用户消息
     messages.value.push({
+      id: generateMessageId(),
       role: 'user',
       content,
       time: formatTime()
@@ -48,6 +75,7 @@ export function useStreamChat() {
 
     // 添加助手消息占位
     const assistantMessage: ChatMessage = {
+      id: generateMessageId(),
       role: 'assistant',
       content: '',
       isStreaming: true,
@@ -126,7 +154,7 @@ export function useStreamChat() {
             const parsed = JSON.parse(data)
             if (parsed.content) {
               assistantMessage.content += parsed.content
-              messages.value = [...messages.value]
+              nextTick(() => queueContentUpdate(assistantMessage.content))
             }
             if (parsed.error) {
               throw new Error(parsed.error)
@@ -158,6 +186,10 @@ export function useStreamChat() {
         clearInterval(timeoutChecker)
         timeoutChecker = null
       }
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+        rafId = null
+      }
     }
   }
 
@@ -177,6 +209,10 @@ export function useStreamChat() {
     if (timeoutChecker) {
       clearInterval(timeoutChecker)
       timeoutChecker = null
+    }
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId)
+      rafId = null
     }
   }
 
@@ -202,6 +238,9 @@ export function useStreamChat() {
     }
     if (timeoutChecker) {
       clearInterval(timeoutChecker)
+    }
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId)
     }
   })
 

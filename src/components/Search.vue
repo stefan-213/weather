@@ -38,7 +38,7 @@ const handleSearch = async () => {
 const getCurrentAndWeather = async () => {
     try {
         await weatherStore.useCurrentLocation()
-        console.log('', weatherStore.currentWeather, weatherStore.location)
+        // console.log('', weatherStore.currentWeather, weatherStore.location)
     } catch (error) {
         console.error('获取当前位置失败:', error)
     }

@@ -28,7 +28,7 @@ const { getWeatherIcon, getWeatherDescription } = useWeatherIcons()
 const locationInfo = computed(() => {
     return weatherStore.location || {};
 })
-console.log('位置信息:', locationInfo.value);
+// console.log('位置信息:', locationInfo.value);
 
 
 // 计算属性 - 当前天气数据
@@ -62,19 +62,19 @@ const currentDate = computed(() => {
 
 // 监听天气数据变化
 watch(() => weatherStore.currentWeather, (newVal) => {
-    console.log('天气数据已更新:', newVal)
+    // console.log('天气数据已更新:', newVal)
 })
 
 // 监听位置数据变化
 watch(() => weatherStore.location, (newVal) => {
-    console.log('位置数据已更新:', newVal)
+    // console.log('位置数据已更新:', newVal)
 })
 
 // 组件挂载时检查数据
 onMounted(() => {
     // 如果当前没有天气数据，尝试获取
     if (!weatherStore.currentWeather && !weatherStore.loading) {
-        console.log('组件挂载，检查天气数据...')
+        // console.log('组件挂载，检查天气数据...')
     }
 })
 </script>
