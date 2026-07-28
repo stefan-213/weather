@@ -47,7 +47,7 @@ export function useStreamChat() {
   }
 
   // API 基础 URL
-  const API_BASE = import.meta.env.VITE_AI_API_URL || 'http://localhost:3001'
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
 
   // 格式化时间
   const formatTime = () => {

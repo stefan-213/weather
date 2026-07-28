@@ -87,20 +87,31 @@ setTimeout(() => {
             })
             .catch(() => {
                 clearTimeout(locationTimeout)
-                // 位置获取失败，使用默认位置
-                console.warn('位置获取失败，使用默认位置信息')
-                locationStore.location = {
-                    lat: 39.9042,
-                    lon: 116.4074,
-                    address: '北京市',
-                    cityCode: 'Beijing',
-                    chineseName: '北京'
-                }
-                
-                // 使用默认位置获取天气数据
-                if (!weatherStore.loading) {
-                    weatherStore.getAllWeather()
-                }
+                // 位置获取失败，尝试使用 IP 定位作为备用
+                console.warn('浏览器定位失败，尝试使用 IP 定位...')
+                locationStore.getLocationByIP()
+                    .then(() => {
+                        console.log('IP 定位成功:', locationStore.location)
+                        if (!weatherStore.loading) {
+                            weatherStore.getAllWeather()
+                        }
+                    })
+                    .catch(() => {
+                        // IP 定位也失败，使用默认位置
+                        console.warn('IP 定位也失败，使用默认位置信息')
+                        locationStore.location = {
+                            lat: 39.9042,
+                            lon: 116.4074,
+                            address: '北京市',
+                            cityCode: 'Beijing',
+                            chineseName: '北京'
+                        }
+
+                        // 使用默认位置获取天气数据
+                        if (!weatherStore.loading) {
+                            weatherStore.getAllWeather()
+                        }
+                    })
             })
     }
 }, 100)

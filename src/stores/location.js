@@ -19,11 +19,12 @@ export const useGetLocationStore = defineStore("getlocation", () => {
     geolocationTimeout: 0,
     geolocationDenied: 0,
     geolocationError: 0,
+    ipLocationSuccess: 0,
     searchCity: 0,
     defaultCity: 0
   });
 
-  // 获取当前位置
+  // 获取当前位置（使用浏览器定位，VPN 下不准确，需要手动搜索）
   async function getCurrentLocation() {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
@@ -36,13 +37,11 @@ export const useGetLocationStore = defineStore("getlocation", () => {
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
-          // 先保存经纬度，确保在catch块中也能访问
           const { latitude, longitude } = position.coords
           locationStats.geolocationSuccess++
 
           try {
             const addressInfo = await getAddressByCoordinates(latitude, longitude)
-
             location.value = {
               lat: latitude,
               lon: longitude,
@@ -67,7 +66,6 @@ export const useGetLocationStore = defineStore("getlocation", () => {
         },
         (err) => {
           error.value = getErrorMessage(err)
-          // 根据错误类型统计
           if (err.code === err.TIMEOUT) {
             locationStats.geolocationTimeout++
           } else if (err.code === err.PERMISSION_DENIED) {
@@ -157,6 +155,43 @@ export const useGetLocationStore = defineStore("getlocation", () => {
     }
   }
 
+  // 通过 IP 获取位置（备用方案）
+  async function getLocationByIP() {
+    try {
+      // 使用 ip-api.com 获取 IP 定位（免费，无需 API key）
+      const response = await axios.get('http://ip-api.com/json/?lang=zh-CN')
+      if (response.data && response.data.status === 'success') {
+        locationStats.ipLocationSuccess++
+        const { lat, lon, city, regionName, country } = response.data
+        // 通过城市名获取更精确的坐标
+        const cityResponse = await axios.get(
+          `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${import.meta.env.VITE_OPENWEATHER_API_KEY}`
+        )
+        if (cityResponse.data && cityResponse.data.length > 0) {
+          location.value = {
+            lat: cityResponse.data[0].lat,
+            lon: cityResponse.data[0].lon,
+            address: `${city}, ${regionName}, ${country}`,
+            cityCode: cityResponse.data[0].name,
+            chineseName: cityResponse.data[0].local_names?.zh || city
+          }
+        } else {
+          location.value = {
+            lat,
+            lon,
+            address: `${city}, ${regionName}, ${country}`,
+            cityCode: city,
+            chineseName: city
+          }
+        }
+        return location.value
+      }
+      throw new Error('IP 定位失败')
+    } catch (err) {
+      throw new Error(`IP 定位失败: ${err.message}`)
+    }
+  }
+
   // 清除错误
   function clearError() {
     error.value = null
@@ -190,6 +225,7 @@ export const useGetLocationStore = defineStore("getlocation", () => {
     getCurrentLocation,
     getLocationByCity,
     getAddressByCoordinates,
+    getLocationByIP,
     clearError,
     locationStats,
     // printStats
