@@ -43,7 +43,7 @@ export async function generateWeatherSummary(options: GenerateSummaryOptions): P
   const { location, temp, feelsLike, description, humidity, windSpeed, pressure, visibility } = options
 
   const response = await client.chat.completions.create({
-    model: 'qwen-plus',
+    model: process.env.DASHSCOPE_MODEL || 'qwen3.7-flash-2026-07-15',
     messages: [
       { role: 'system', content: WEATHER_SYSTEM_PROMPT },
       { role: 'user', content: `请为以下天气数据生成简洁的总结：
@@ -82,7 +82,7 @@ export async function* streamChat(
   ]
 
   const stream = await client.chat.completions.create({
-    model: 'qwen-plus',
+    model: process.env.DASHSCOPE_MODEL || 'qwen3.7-flash-2026-07-15',
     messages,
     temperature: 0.7,
     stream: true
@@ -110,7 +110,7 @@ export async function chat(
   ]
 
   const response = await client.chat.completions.create({
-    model: 'qwen-plus',
+    model: process.env.DASHSCOPE_MODEL || 'qwen3.7-flash-2026-07-15',
     messages,
     temperature: 0.7,
     max_tokens: 1000
@@ -128,7 +128,7 @@ export async function generateClothingAdvice(
   windSpeed?: number
 ): Promise<string> {
   const response = await client.chat.completions.create({
-    model: 'qwen-plus',
+    model: process.env.DASHSCOPE_MODEL || 'qwen3.7-flash-2026-07-15',
     messages: [
       { role: 'system', content: '你是一个专业的穿衣顾问，请根据天气数据给出简洁的穿衣建议。' },
       { role: 'user', content: `温度：${temp}°C，天气：${description}，风速：${windSpeed ?? 0} m/s。请给出穿衣建议。` }
@@ -150,7 +150,7 @@ export async function generateTravelAdvice(
   humidity?: number
 ): Promise<string> {
   const response = await client.chat.completions.create({
-    model: 'qwen-plus',
+    model: process.env.DASHSCOPE_MODEL || 'qwen3.7-flash-2026-07-15',
     messages: [
       { role: 'system', content: '你是一个专业的出行顾问，请根据天气数据给出简洁的出行建议。' },
       { role: 'user', content: `温度：${temp}°C，天气：${description}，风速：${windSpeed ?? 0} m/s，湿度：${humidity ?? 0}%。请给出出行建议。` }
