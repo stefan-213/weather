@@ -23,6 +23,8 @@
       </div>
     </div>
 
+    <div v-if="error" class="chat-error" role="alert">{{ error }}</div>
+
     <div class="quick-questions">
       <button
         v-for="q in quickQuestions"
@@ -372,6 +374,13 @@ const formatTime = () => {
   opacity: 0.5;
   color: var(--text-color);
   padding: 0 4px;
+}
+
+.chat-error {
+  padding: 8px 16px;
+  color: #e53e3e;
+  font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .quick-questions {

@@ -87,7 +87,7 @@ aiRouter.post('/chat/stream', async (req, res) => {
     }, 20000)
 
     // 清理心跳
-    req.on('close', () => {
+    res.on('close', () => {
       if (keepAlive) clearInterval(keepAlive)
     })
 
@@ -106,6 +106,9 @@ aiRouter.post('/chat/stream', async (req, res) => {
         error: error instanceof Error ? error.message : '服务器错误'
       })
     } else {
+      res.write(`data: ${JSON.stringify({
+        error: error instanceof Error ? error.message : '服务器错误'
+      })}\n\n`)
       res.end()
     }
   } finally {

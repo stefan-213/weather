@@ -5,7 +5,7 @@ dotenv.config()
 // 初始化 OpenAI 客户端（使用 DashScope）
 const client = new OpenAI({
   apiKey: process.env.DASHSCOPE_API_KEY || 'your-api-key',
-  baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+  baseURL: process.env.DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1'
 })
 
 // 天气相关的系统提示

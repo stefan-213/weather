@@ -102,7 +102,8 @@ export function useStreamChat() {
       })
 
       if (!response.ok) {
-        throw new Error(`请求失败: ${response.status}`)
+        const body = await response.json().catch(() => null)
+        throw new Error(body?.error || `请求失败: ${response.status}`)
       }
 
       // 流式读取
@@ -150,19 +151,25 @@ export function useStreamChat() {
             break
           }
 
+          let parsed: { content?: string; error?: string }
           try {
-            const parsed = JSON.parse(data)
-            if (parsed.content) {
-              assistantMessage.content += parsed.content
-              nextTick(() => queueContentUpdate(assistantMessage.content))
-            }
-            if (parsed.error) {
-              throw new Error(parsed.error)
-            }
+            parsed = JSON.parse(data)
           } catch {
             // 忽略解析错误
+            continue
+          }
+          if (parsed.error) {
+            throw new Error(parsed.error)
+          }
+          if (parsed.content) {
+            assistantMessage.content += parsed.content
+            nextTick(() => queueContentUpdate(assistantMessage.content))
           }
         }
+      }
+
+      if (!assistantMessage.content.trim()) {
+        throw new Error('模型未返回内容，请检查模型配置和访问权限后重试')
       }
 
       assistantMessage.isStreaming = false
@@ -175,7 +182,9 @@ export function useStreamChat() {
         }
       } else {
         error.value = err instanceof Error ? err.message : '发送失败'
-        assistantMessage.content = '抱歉，发生了错误，请稍后重试。'
+        if (!assistantMessage.content) {
+          assistantMessage.content = '抱歉，暂时无法生成回复。'
+        }
       }
       assistantMessage.isStreaming = false
       messages.value = [...messages.value]
